@@ -9,9 +9,9 @@ from printutils import *
 
 
 # initX, initY = 0, 0
-infectProb = 0.85
-infectRadius = 0.05
-xyBounds = 1.0
+infectProb = 0.01
+infectRadius = 2.0
+xyBounds = 10.0
 unitSize = 1.0
 
 popMembDict = {'0': {'Status': 'NotCarrying',
@@ -29,10 +29,11 @@ attrList = ['spaceXY', 'pointType', 'NN']
 # class_colours = ['g', 'r', 'y', 'grey']
 # plotDict = {str(typeNb): color for typeNb, color in enumerate(class_colours)}
 
-fig, ax = plt.subplots(figsize=(8, 8))
+fig, (ax, axHist) = plt.subplots(2, 1, sharex=True, figsize=(8, 8))
 
 
-ln = ax.scatter([], [], s=100)
+ln = ax.scatter([], [], s=50)
+histLn = axHist.hist([])
 
 
 def _genInitConfig(nbPeople=100, nbCarriersSympt=1, nbCarriersNoSympt=1):
@@ -45,15 +46,19 @@ def _genInitConfig(nbPeople=100, nbCarriersSympt=1, nbCarriersNoSympt=1):
 
     for numbID in range(nbPeople):
         attrDict = {}
-        attrDict['spaceXY'] = {'xPos': random.uniform(0, xyBounds), 'yPos': random.uniform(0, xyBounds)}
+        # x and y coordinate initialisation
+        attrDict['spaceXY'] = {'xPos': random.uniform(-xyBounds, xyBounds),
+                               'yPos': random.uniform(-xyBounds, xyBounds)}
 
+        # initialise random types
         randIdx = random.randint(0, len(auxLst) - 1)
-        print(randIdx, auxLst)
         attrDict['pointType'] = str(auxLst[randIdx])
         del auxLst[randIdx]
 
+        # create empty field for nearest neighbourghs
         attrDict['NN'] = {}
 
+        # add point ID and update the phase space dictionary
         persID = 'ID-' + str(numbID)
         psDict[persID] = attrDict
 
@@ -123,6 +128,14 @@ def _convertTypeToCol(typeList):
     return colorList
 
 
+def countTypes(psDict):
+    '''
+        Counts each type of the population in the current phase space dictionary, and returns a
+        dictionary with their specific numbers.
+    '''
+    return tyCountDict
+
+
 def initEnviron():
     '''
         Initialise the scatter frame.
@@ -138,14 +151,14 @@ def initEnviron():
     return ln,
 
 
-def evolveLocDt(currX, currY, pointID, moveMthd='normalRnd', mtdDict={'stepSigma': 0.005}):
+def evolveLocDt(currX, currY, pointID, moveMthd='normalRnd', mtdDict={'stepSigma': 0.05}):
     '''
         Given the current X and Y coordinates at time t, function returns the evolved position at the next instance
         in time t + dt. Specify method via moveMthd and supply arguments via mtdDict
     '''
 
     if moveMthd == 'normalRnd':
-        stepSigma = mtdDict['stepSigma']
+        stepSigma = mtdDict['stepSigma'] * unitSize
         newX = currX + random.normalvariate(0, stepSigma)
         newY = currY + random.normalvariate(0, stepSigma)
     elif moveMthd == 'circPattern':
@@ -210,7 +223,7 @@ def evolveTimeDt(*args):
 
         # Calculate new infection generation #rollThemDice
         if 'Carrier' in popMembDict[str(pointType)]['Status']:
-            print(Fore.RED + f'💀 Point {pointID} has the PLAGUE 💀' + Style.RESET_ALL)
+            # print(Fore.RED + f'💀 Point {pointID} has the PLAGUE 💀' + Style.RESET_ALL)
             psDict = findNN(psDict, allDict=pointID)
 
             psDict = probInfectNN(psDict, list(psDict[pointID]['NN'].keys()))
@@ -288,7 +301,8 @@ def findNN(psDict, intRad=infectRadius, nSigma=2, allDict=None):
 #           'ID-3': {'spaceXY': {'xPos': -0.3, 'yPos': -0.3}, 'pointType': 0, 'NN': {}},
 #           'ID-4': {'spaceXY': {'xPos': -0.3, 'yPos': 0.3}, 'pointType': 0, 'NN': {}}
 #           }
-psDict = _genInitConfig(nbPeople=200)
+
+psDict = _genInitConfig(nbPeople=300)
 
 # posDict = {'xPos': initX, 'yPos': initY}
 # findNN(psDict)
